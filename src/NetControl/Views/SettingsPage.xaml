@@ -1,0 +1,199 @@
+<UserControl x:Class="NetControl.Views.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" HorizontalAlignment="Left">
+            <Grid Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Settings" Style="{StaticResource H1}"/>
+                    <TextBlock Text="All settings are stored in %APPDATA%\NetControl\settings.json"
+                               Style="{StaticResource Sub}" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="Save settings" Style="{StaticResource AccentButton}"
+                            Command="{Binding SaveCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Save + apply scan settings" Command="{Binding ApplyScanSettingsCommand}"/>
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Text="{Binding OuiInfo}" Style="{StaticResource Sub}" Margin="0,0,0,12"/>
+
+            <!-- Discovery -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Device discovery" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                    <CheckBox Content="Automatic scanning (refresh device list)" IsChecked="{Binding S.AutoScan}"
+                              Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="Scan interval (seconds)" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.ScanIntervalSeconds}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                            <TextBlock Text="Ping timeout (ms)" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.PingTimeoutMs}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Scan concurrency" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.ScanConcurrency}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                            <CheckBox Content="Resolve hostnames (reverse DNS)" IsChecked="{Binding S.DetectHostnames}"/>
+                            <CheckBox Content="mDNS discovery (Chromecast, AirPlay, printers)" IsChecked="{Binding S.DetectMdns}"/>
+                            <CheckBox Content="SSDP / UPnP discovery (TVs, NAS, routers)" IsChecked="{Binding S.DetectSsdp}"/>
+                            <CheckBox Content="WS-Discovery (Windows PCs, printers)" IsChecked="{Binding S.DetectWsd}"/>
+                            <CheckBox Content="DHCP hostnames from OpenWrt lease table" IsChecked="{Binding S.UseDhcpLeases}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="400"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Network adapter used for scanning, ARP and traffic counters"
+                                       Style="{StaticResource SectionHeader}"/>
+                            <ComboBox ItemsSource="{Binding Adapters}" SelectedItem="{Binding SelectedAdapter}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <Run Text="{Binding Name, Mode=OneWay}"/>
+                                            <Run Text=" - " Foreground="#999"/><Run Text="{Binding Subnet, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Rescan adapters" Command="{Binding RescanAdapterCommand}"
+                                VerticalAlignment="Bottom" Margin="10,0,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Theme -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Appearance" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Dark theme" Command="{Binding ChangeThemeCommand}" CommandParameter="Dark"
+                                Margin="0,0,8,0"/>
+                        <Button Content="Light theme" Command="{Binding ChangeThemeCommand}" CommandParameter="Light"/>
+                        <TextBlock Text="{Binding S.Theme, StringFormat='Active: {0}'}" Style="{StaticResource Sub}"
+                                   VerticalAlignment="Center" Margin="14,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Notifications -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Notifications" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                    <UniformGrid Columns="3">
+                        <StackPanel>
+                            <CheckBox Content="Desktop toasts" IsChecked="{Binding S.Notifications.ToastEnabled}" Margin="0,0,0,8"/>
+                            <CheckBox Content="New device joined" IsChecked="{Binding S.Notifications.NewDevice}"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <CheckBox Content="Device went offline" IsChecked="{Binding S.Notifications.DeviceOffline}" Margin="0,0,0,8"/>
+                            <CheckBox Content="Unknown device" IsChecked="{Binding S.Notifications.UnknownDevice}"/>
+                        </StackPanel>
+                        <StackPanel>
+                            <CheckBox Content="ARP / security alerts" IsChecked="{Binding S.Notifications.ArpAlert}" Margin="0,0,0,8"/>
+                            <CheckBox Content="Scheduled operations" IsChecked="{Binding S.Notifications.ScheduleActions}" Margin="0,0,0,8"/>
+                            <CheckBox Content="Failed operations" IsChecked="{Binding S.Notifications.OperationFailed}"/>
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Router -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Router / AP management (OpenWrt)" Style="{StaticResource H2}" Margin="0,0,0,6"/>
+                    <TextBlock Text="Enable only if your router runs OpenWrt with LuCI RPC (rpcd). NetControl then blocks/restores internet per device with firewall rules. Other router brands are not silently faked - if unsupported, NetControl says so."
+                               Style="{StaticResource Sub}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <CheckBox Content="Enable OpenWrt integration" IsChecked="{Binding S.Router.Enabled}" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="Router IP" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.Router.Ip}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                            <TextBlock Text="Username" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.Router.Username}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                            <TextBlock Text="Password" Style="{StaticResource SectionHeader}"/>
+                            <PasswordBox x:Name="RouterPassword" LostFocus="OnRouterPasswordChanged"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                            <Button Content="Test connection" Style="{StaticResource AccentButton}"
+                                    Command="{Binding TestRouterCommand}" Margin="0,0,8,0"/>
+                        </StackPanel>
+                    </Grid>
+                    <Button Content="Test UPnP (any router)" Command="{Binding TestUpnpCommand}" HorizontalAlignment="Left"
+                            Margin="0,10,0,0"/>
+                    <Border Background="{StaticResource Brush.Panel}" CornerRadius="6" Padding="10,7" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding RouterTestResult}" TextWrapping="Wrap" FontSize="12.5"/>
+                            <TextBlock Text="{Binding UpnpTestResult}" TextWrapping="Wrap" FontSize="12.5" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ARP -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="ARP enforcement (NetCut-style blocking)" Style="{StaticResource H2}" Margin="0,0,0,6"/>
+                    <TextBlock Text="ARP enforcement poisons the ARP caches of a device and your gateway so its internet traffic stops. It requires: Npcap installed, running NetControl as Administrator, and a wired/Wi-Fi network. Misuse on networks you do not own or administer may be illegal."
+                               Style="{StaticResource Sub}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Toggle ARP enforcement" Command="{Binding ToggleArpEnforcementCommand}" Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding S.Arp.EnforcementEnabled, Converter={StaticResource EnabledText}}"
+                                   VerticalAlignment="Center" Style="{StaticResource Sub}"/>
+                    </StackPanel>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Spoof packet interval (ms)" Style="{StaticResource SectionHeader}"/>
+                            <TextBox Text="{Binding S.Arp.SpoofIntervalMs}"/>
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" Content="Passive ARP capture for spoofing detection (Npcap)"
+                                  IsChecked="{Binding S.Arp.PassiveDetection}" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <Border Background="{StaticResource Brush.Panel}" CornerRadius="6" Padding="10,7" Margin="0,10,0,0">
+                        <TextBlock Text="{Binding ArpStatus}" TextWrapping="Wrap" FontSize="12.5"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- History -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="History retention" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Keep history for (days): " VerticalAlignment="Center" Style="{StaticResource Sub}"/>
+                        <TextBox Text="{Binding S.HistoryRetentionDays}" Width="80" Margin="6,0,10,0"/>
+                        <Button Content="Prune now" Command="{Binding PruneHistoryNowCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
