@@ -270,3 +270,5 @@ By using this software, you acknowledge that:
 This project is distributed under the [The Unlicense](LICENSE).
 
 See the `LICENSE` file for details.
+
+Made With AI
