@@ -263,10 +263,6 @@ By using this software, you acknowledge that:
 - You are solely responsible for your actions and how you use the software.
 - I, as the sole developer of NetControl, am not responsible for misuse, unauthorized activity, damages, losses, or other consequences resulting from the use of this application.
 
-**NetControl is provided "AS IS", without warranties of any kind, to the extent permitted by applicable law.**
-
-Use NetControl responsibly and only on networks you own or have explicit permission to administer.
-
 ---
 
 ## License
