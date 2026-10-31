@@ -1,152 +1,276 @@
 # NetControl
 
-A complete, NetCut-inspired network management application for **Windows 11** (also runs on Windows 10 1809+),
-built with **C# / .NET 8 WPF**.
+**A NetCut-inspired network discovery, monitoring, and management application for Windows 10 and Windows 11.**
 
-NetControl discovers every device on your local network by itself (ARP sweep + ICMP ping + reverse DNS,
-independent of any router), lets you manage devices, and offers internet access control through
-**OpenWrt router firewall rules** or an opt-in **ARP enforcement engine** (Npcap), with honest status
-reporting everywhere - an operation either really happened, or NetControl tells you it failed.
+NetControl is a desktop application built with **C# / .NET 8 WPF** that allows you to discover, identify, monitor, and manage devices connected to your local network.
+
+It combines network scanning, device identification, connection monitoring, bandwidth tracking, security alerts, and internet access control in one application.
+
+NetControl is designed to work independently of router administration access for its core network discovery and monitoring features. Optional router integration and network enforcement provide additional functionality.
 
 ---
 
-## Quick start
+## Quick Start
 
-### Option A - run the prebuilt binary (recommended)
-1. Install the [.NET 8 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/8.0) - the
-   "Desktop Runtime" (not the SDK) is required because the shipped build is framework-dependent.
-2. Optional but recommended for ARP features: install [Npcap](https://npcap.com) (choose "Install in
-   WinPcap API-compatible mode" during setup).
-3. Unzip `NetControl-win-x64.zip` and run `NetControl.exe`.
+### Option A: Run the prebuilt application
 
-### Option B - build from source
+1. Install the [.NET 8 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/8.0).
+2. For ARP-related functionality, install [Npcap](https://npcap.com).
+3. Extract `NetControl-win-x64.zip`.
+4. Run `NetControl.exe`.
+
+### Option B: Build from source
+
+Requirements:
+- Windows 10 1809 or newer.
+- .NET 8 SDK.
+- Visual Studio 2022 or another compatible development environment (optional).
+
+Run the included build script:
+
 ```bat
-:: on Windows with the .NET 8 SDK installed
-build.bat          :: restores, builds Release and publishes to publish\NetControl-win-x64
+build.bat
 ```
-or manually:
+
+Or build manually:
+
 ```bat
 dotnet publish src\NetControl\NetControl.csproj -c Release -r win-x64 --self-contained false
 ```
-The application binary is `src\NetControl\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\NetControl.exe`.
 
-### Administrator rights
-NetControl runs fine as a normal user for **scanning, monitoring and the dashboard**.
-Administrator rights are required only for:
-- ARP enforcement (sending crafted ARP packets),
-- changing/restoring an adapter MAC address.
+The published application will be located in the project's publish directory.
 
-NetControl detects the privilege level itself and shows it in Security and Settings pages.
+### Administrator Permissions
 
----
+NetControl can run without administrator privileges for everyday network scanning, monitoring, and dashboard functionality.
 
-## Feature overview
+Administrator privileges are required for certain advanced operations, including:
+- ARP enforcement.
+- Changing or restoring a network adapter's MAC address.
 
-| Area | What it does | Works without router? | Works without admin? |
-|---|---|---|---|
-| Device scanner | ARP sweep + ICMP ping + ARP-cache merge + reverse DNS, auto-refresh (configurable interval) and manual rescan; detects new/left devices | Yes | Yes |
-| Device management | Custom names, categories (PC/Phone/Tablet/Console/Router/IoT/Printer/TV), trusted flag, notes, first/last seen, copy info, SQLite persistence | Yes | Yes |
-| Internet access control | Block/restore per device or multi-select; restore-all; scheduling; real status display | Router rules or ARP needed | See ARP |
-| Router integration (OpenWrt) | ubus JSON-RPC login, per-MAC firewall DROP rules, uci commit + apply, rule lookup & removal, SQM capability detection | No (router feature) | Yes |
-| UPnP IGD | SSDP discovery, WAN status, IGD2 total byte counters (informational; UPnP cannot block per device - stated in UI) | No (router feature) | Yes |
-| Bandwidth | Live up/down speeds + 10-minute chart from real adapter counters, session totals, router-based limit policy (requires OpenWrt SQM - honestly reported when unavailable) | Speeds yes | Yes |
-| Connection history | Connect/disconnect, IP changes, block/unblock, schedules, manual actions; search, type/date filters, per-device view, clear, retention pruning | Yes | Yes |
-| Scheduler | Recurring block/allow windows per device, weekday selection, overnight windows supported, persists in SQLite, auto-revert at window end, active/applied status | Enforcement via router/ARP | See ARP |
-| Security | Unknown-device alerts, known-device list, ARP spoofing detection (passive capture + periodic active gateway probes + baseline learning), security event log | Yes (SendARP-based probes work without Npcap) | Yes |
-| MAC tools | Local adapter MACs, discovered device MACs, copy, OUI vendor lookup (40,000+ entries bundled from the IEEE database), MAC change/restore via driver registry value + adapter restart | Yes | Change needs admin |
-| Dashboard | Totals (all/online/offline/unknown/trusted/blocked), live speed chart, session traffic, recent activity, security alerts, enforcement status | Yes | Yes |
-| Notifications | Windows 11 toast notifications + in-app banner, per-event-type toggles | Yes | Yes |
-| Settings | Auto scan + interval, ping timeout, concurrency, adapter selection, notifications, dark/light theme, history retention, router config, ARP config, all persisted as JSON | Yes | Yes |
-
-### Internet access control paths (in priority order)
-1. **OpenWrt firewall** - NetControl creates a `firewall` uci rule (`src_mac` of the device, `DROP` to
-   `wan`), commits and applies it. OpenWrt 21.02+ recommended. Requires rpcd/LuCI RPC access for the
-   configured user (root by default).
-2. **ARP enforcement** (NetCut-style) - requires Npcap + Administrator. NetControl sends crafted ARP
-   replies that make the victim's traffic and the gateway's return traffic stop at this PC, and sends
-   corrective ARP packets when you restore access. Every session is visible on the Security page and a
-   "Stop all" happens automatically on app exit.
-3. **Neither available?** The block/restore operation **fails with a clear message** - it never fakes success.
-
-### ARP spoofing detection
-- Passive: while a Npcap capture is bound, any ARP announcement claiming the gateway IP with a foreign
-  MAC raises a **Critical** security event and toast.
-- Active: every 60 seconds NetControl re-probes the gateway with `SendARP` and compares the answer with
-  the learned baseline (works even without Npcap).
-- NetControl ignores its own ARP frames so enforcement never triggers its own detector.
+NetControl checks its privilege level and reports the available functionality in the application.
 
 ---
 
-## Project structure
+## Features
 
-```
-NetControl/
-├─ NetControl.sln
-├─ build.bat / build.ps1          # one-command Windows build
-├─ README.md
-├─ data/oui.csv                   # (source copy) IEEE OUI vendor database, 40k entries
-├─ publish/NetControl-win-x64/    # ready-to-run framework-dependent build (in the released zip)
-└─ src/NetControl/
-   ├─ NetControl.csproj           # net8.0-windows10.0.19041.0, WPF, x64
-   ├─ App.manifest                # per-monitor DPI, asInvoker (admin checked at runtime)
-   ├─ App.xaml / App.xaml.cs      # composition root, theme switching, service wiring
-   ├─ Themes/Dark.xaml            # full dark theme (Win11-style palette, restyled controls)
-   ├─ Themes/Light.xaml           # light theme variant
-   ├─ Themes/Controls.xaml        # converters + shared styles
-   ├─ Models/                     # Device (INPC), HistoryEvent, SecurityEvent, Schedule, AppSettings...
-   ├─ Services/
-   │  ├─ AppServices.cs           # service graph / composition
-   │  ├─ NetworkHelper.cs         # SendARP P/Invoke, adapters, arp -a parsing, process helper
-   │  ├─ NetworkScanner.cs        # subnet expansion, parallel ARP/ping sweep, hostnames
-   │  ├─ DeviceService.cs         # device registry, online/offline + IP-change tracking, history
-   │  ├─ ScanManager.cs           # auto-scan timer, adapter selection, gateway learning
-   │  ├─ ArpService.cs            # Npcap engine: spoofing/blocking, restore, passive detection
-   │  ├─ RouterService.cs         # OpenWrt ubus client (login, uci firewall rules, SQM detect)
-   │  ├─ UpnpService.cs           # SSDP + SOAP IGD client (status, WAN byte counters)
-   │  ├─ AccessControlService.cs  # composite enforcement with honest failure reporting
-   │  ├─ SchedulerService.cs      # recurring windows, apply/revert, persistence
-   │  ├─ SecurityService.cs       # unknown devices, ARP alerts, probes, event log
-   │  ├─ TrafficMonitor.cs        # 1 Hz adapter byte counters -> speeds + history ring buffer
-   │  ├─ NotificationService.cs   # Windows toast notifications
-   │  ├─ MacService.cs            # MAC change/restore via driver registry + netsh restart
-   │  ├─ OuiService.cs            # IEEE OUI lookup
-   │  ├─ SettingsService.cs       # JSON settings persistence
-   │  └─ Database.cs              # SQLite schema + queries (devices/history/events/schedules)
-   ├─ ViewModels/                 # MVVM (CommunityToolkit.Mvvm), 8 page VMs + MainViewModel
-   ├─ Views/                      # MainWindow (sidebar nav) + 8 pages
-   └─ Controls/                   # SpeedChart (custom-drawn), converters
-```
+| Feature | Description |
+|---|---|
+| Network Scanner | Discover devices using ARP scanning, ICMP ping, ARP cache information, and reverse DNS. |
+| Device Identification | Identify manufacturers, hostnames, MAC addresses, device categories, and other available information. |
+| Device Management | Rename devices, assign categories, mark trusted devices, and add notes. |
+| Internet Access Control | Block and restore device connectivity through supported enforcement methods. |
+| OpenWrt Integration | Manage per-device firewall rules through OpenWrt router integration. |
+| ARP Enforcement | Optional network enforcement engine using Npcap. |
+| UPnP Integration | Discover compatible gateways and retrieve available WAN information. |
+| Bandwidth Monitoring | Monitor live upload/download speeds and network traffic history. |
+| Connection History | Track device connections, disconnections, IP changes, and management actions. |
+| Scheduler | Configure recurring device access schedules. |
+| Security Monitoring | Detect unknown devices and suspicious ARP activity. |
+| MAC Address Tools | View adapter MAC addresses, identify manufacturers, and manage supported MAC changes. |
+| Dashboard | View network statistics, device information, traffic, and recent activity. |
+| Notifications | Receive Windows notifications and in-app alerts. |
+| Settings | Configure scanning, notifications, adapters, appearance, and other application preferences. |
 
-## Technologies & dependencies
-- .NET 8 (WPF, `net8.0-windows10.0.19041.0`), C# 12, MVVM via **CommunityToolkit.Mvvm 8.2.2**
-- **Microsoft.Data.Sqlite 8.0.8** - device/history/schedule/event persistence
-- **SharpPcap 6.1.0** (Npcap) - ARP packet send/capture for enforcement & detection
-- **Microsoft.Toolkit.Uwp.Notifications 7.1.3** - Windows 10/11 toasts
-- **System.Management 8.0.0** - adapter information
-- IEEE OUI database (bundled, 40,424 manufacturer entries)
-- No charts library - the speed chart is a custom-drawn `FrameworkElement` (smaller, theme-aware)
+---
 
-## Features requiring router/AP support
-- Blocking/restoring internet **without** ARP enforcement (OpenWrt firewall integration)
-- Router bandwidth policies (OpenWrt with `sqm-scripts`; detected at runtime, never faked)
-- UPnP WAN traffic counters (any router with a UPnP IGD2 gateway)
+## Device Discovery & Identification
 
-Device discovery, monitoring, history, scheduling engine, security detection, MAC tools and the whole
-UI work with **no router access at all**.
+NetControl combines multiple discovery methods to identify devices on your local network.
 
-## Honest-limitation notes (by design, not by accident)
-- Non-OpenWrt routers: NetControl does not pretend to block through them. It reports "not supported" and
-  suggests OpenWrt or ARP enforcement.
-- Per-device bandwidth usage is only shown when the router can provide it; otherwise the page says so.
-- MAC changing depends on the NIC driver accepting the `NetworkAddress` registry value; NetControl reads
-  back the result and reports the actual MAC.
-- The Windows toast subsystem may be unavailable in exotic configurations; banners are always shown in-app.
+Available identification techniques include:
+
+- ARP scanning.
+- ICMP ping discovery.
+- ARP cache inspection.
+- Reverse DNS lookup.
+- Hostname discovery.
+- MAC address identification.
+- IEEE OUI manufacturer lookup.
+- Network protocol discovery.
+- Device categorization.
+
+The application can organize discovered devices into categories such as:
+
+- Computers and laptops.
+- Smartphones and tablets.
+- Gaming consoles.
+- Smart TVs.
+- Printers.
+- Routers and network equipment.
+- IoT devices.
+
+Identification accuracy depends on the information exposed by each device. Exact models and operating systems cannot always be determined.
+
+---
+
+## Internet Access Control
+
+NetControl supports multiple approaches to managing device internet connectivity.
+
+### OpenWrt Integration
+
+Connect to a compatible OpenWrt router and manage device access through firewall rules.
+
+Features include:
+- Per-device blocking and restoring.
+- MAC-based firewall rules.
+- Firewall rule management.
+- Rule status verification.
+- OpenWrt SQM capability detection.
+
+Requires compatible OpenWrt router access.
+
+### ARP Enforcement
+
+NetControl also includes an optional ARP-based enforcement engine using Npcap.
+
+This functionality requires administrator privileges and compatible network conditions.
+
+The application reports enforcement status and restoration results rather than assuming an operation succeeded.
+
+### Automatic Restoration
+
+Active enforcement sessions are tracked, with automatic cleanup attempted when the application exits.
+
+---
+
+## Security Monitoring
+
+NetControl includes network security monitoring features designed to help identify unexpected devices and suspicious ARP activity.
+
+Features include:
+- Unknown-device alerts.
+- Known-device tracking.
+- Gateway MAC baseline learning.
+- ARP spoofing detection.
+- Periodic gateway verification.
+- Security event history.
+- Windows and in-app notifications.
+
+Security alerts are based on observed network activity and should not be treated as guaranteed proof of an attack.
+
+---
+
+## Bandwidth Monitoring
+
+Monitor network adapter traffic directly from your Windows computer.
+
+Features include:
+- Live upload speed.
+- Live download speed.
+- Network traffic history.
+- Session traffic totals.
+- Live speed charts.
+
+Router-dependent bandwidth policies require compatible OpenWrt SQM functionality.
+
+---
+
+## Connection History & Scheduling
+
+Keep track of network activity and device management events.
+
+Connection history includes:
+- Device connections and disconnections.
+- IP address changes.
+- Block and restore events.
+- Scheduling events.
+- Manual management actions.
+
+The scheduler supports recurring access windows, weekday selection, and overnight schedules, with automatic restoration when a scheduled window ends.
+
+---
+
+## Technical Stack
+
+| Technology | Purpose |
+|---|---|
+| C# 12 | Main programming language |
+| .NET 8 | Application framework |
+| WPF | Windows desktop interface |
+| CommunityToolkit.Mvvm | MVVM architecture |
+| Microsoft.Data.Sqlite | Local database |
+| SharpPcap | Packet capture and ARP functionality |
+| Npcap | Network packet access |
+| System.Management | Windows network adapter information |
+| Windows Toast Notifications | Desktop notifications |
+| IEEE OUI Database | MAC manufacturer identification |
+
+The application uses SQLite for persistent device information, connection history, security events, and scheduling data.
+
+---
+
+## System Requirements
+
+- Windows 10 version 1809 or newer.
+- Windows 11 supported.
+- x64 processor.
+- .NET 8 Desktop Runtime.
+- Network adapter with local network connectivity.
+
+Additional requirements:
+- Npcap for ARP packet capture and enforcement.
+- Administrator privileges for certain advanced operations.
+- Compatible OpenWrt router for router-based access control and bandwidth policies.
+
+---
+
+## Limitations
+
+Some functionality depends on network hardware, drivers, permissions, and router compatibility.
+
+- Device identification cannot always determine exact hardware models.
+- MAC randomization can make manufacturer identification less reliable.
+- Firewalls may prevent certain discovery methods.
+- Non-OpenWrt routers are not supported for OpenWrt-specific firewall management.
+- Per-device bandwidth information requires compatible router support.
+- MAC address changes depend on network adapter driver support.
+- Network enforcement may not work on every network configuration.
+
+NetControl aims to report actual results and limitations rather than displaying misleading success messages.
+
+---
 
 ## Privacy
-Everything stays on your machine: SQLite database and settings live in `%APPDATA%\NetControl`.
-No telemetry, no cloud calls except the router(s) you configure.
 
-## License / responsible use
-Use NetControl only on networks you own or are authorized to administer. ARP enforcement is a powerful
-network administration technique (the same one NetCut uses) and interfering with devices on networks
-you do not control may be illegal in your jurisdiction.
+NetControl is designed to operate locally on your computer.
+
+- Device records are stored locally.
+- Application settings are stored in `%APPDATA%\NetControl`.
+- SQLite is used for local data persistence.
+- No telemetry is intentionally collected.
+- No cloud account is required.
+- Router communication only occurs when you configure and use router integration.
+
+---
+
+## Developer
+
+NetControl is an independently developed project maintained by a single developer.
+
+---
+
+## Disclaimer & Responsible Use
+
+NetControl is provided for educational purposes and legitimate network administration.
+
+By using this software, you acknowledge that:
+
+- You are responsible for ensuring you have authorization to scan, monitor, or manage the network on which you use NetControl.
+- You must not use the application to interfere with networks or devices without permission.
+- Public Wi-Fi networks, cafés, schools, workplaces, and other shared networks may have restrictions on network scanning and management.
+- You are solely responsible for your actions and how you use the software.
+- I, as the sole developer of NetControl, am not responsible for misuse, unauthorized activity, damages, losses, or other consequences resulting from the use of this application.
+
+**NetControl is provided "AS IS", without warranties of any kind, to the extent permitted by applicable law.**
+
+Use NetControl responsibly and only on networks you own or have explicit permission to administer.
+
+---
+
+## License
+
+This project is distributed under the [The Unlicense](LICENSE).
+
+See the `LICENSE` file for details.
