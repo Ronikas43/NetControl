@@ -271,6 +271,4 @@ This project is distributed under the [The Unlicense](LICENSE).
 
 See the `LICENSE` file for details.
 
-
-
-Made With AI
+### THIS PROJECT WAS COMPLETLY MADE WITH AI AND IS COMPLETLY VIBECODED!
